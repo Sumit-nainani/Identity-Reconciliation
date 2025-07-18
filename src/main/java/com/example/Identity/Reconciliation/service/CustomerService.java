@@ -4,8 +4,6 @@ import com.example.Identity.Reconciliation.DTO.CustomerRequestDTO;
 import com.example.Identity.Reconciliation.DTO.CustomerResponseDTO;
 import com.example.Identity.Reconciliation.entity.CustomerEntity;
 import com.example.Identity.Reconciliation.repository.CustomerRepository;
-import lombok.extern.slf4j.Slf4j;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,9 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Service
 public class CustomerService {
@@ -28,14 +24,18 @@ public class CustomerService {
 
         String email = customerRequestDTO.getEmail();
         String phoneNumber = customerRequestDTO.getPhoneNumber();
+        if(email == null &&  phoneNumber == null){
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .build();
+        }
+        Optional<CustomerEntity> emailMatch = email != null ?repo.findFirstByEmail(email): Optional.empty()  ;
+        Optional<CustomerEntity> phoneMatch = phoneNumber != null ? repo.findFirstByPhoneNumber(phoneNumber) : Optional.empty() ;
 
-        List<CustomerEntity> emailMatches = email == null ? Collections.emptyList() : repo.findByEmail(email);
-        List<CustomerEntity> phoneMatches = phoneNumber == null ? Collections.emptyList() : repo.findByPhoneNumber(phoneNumber);
-
-        System.out.println(emailMatches);
-        System.out.println(phoneMatches);
+        System.out.println(emailMatch);
+        System.out.println(phoneMatch);
         // --- CASE 1: New unique identity (no match for email/phone)
-        if (emailMatches.isEmpty() && phoneMatches.isEmpty()) {
+        if (emailMatch.isEmpty() && phoneMatch.isEmpty()) {
             CustomerEntity primaryCustomerRecord = new CustomerEntity();
             primaryCustomerRecord.setEmail(email);
             primaryCustomerRecord.setPhoneNumber(phoneNumber);
@@ -46,10 +46,10 @@ public class CustomerService {
 
         // Find all the roots for the email and phone matches (if any)
         CustomerEntity primaryEntity = null;
-        if (!emailMatches.isEmpty() && !phoneMatches.isEmpty()) {
+        if (emailMatch.isPresent() && phoneMatch.isPresent()) {
             // Could be different clusters, resolve each to root, for potential merge
-            CustomerEntity primaryCustomerFromEmail = findPrimaryCustomer(emailMatches.get(0));
-            CustomerEntity primaryCustomerFromPhone = findPrimaryCustomer(phoneMatches.get(0));
+            CustomerEntity primaryCustomerFromEmail = findPrimaryCustomer(emailMatch.get());
+            CustomerEntity primaryCustomerFromPhone = findPrimaryCustomer(phoneMatch.get());
 
             if (!primaryCustomerFromEmail.getId().equals(primaryCustomerFromPhone.getId())) {
                 // Merge two trees, oldest as primary
@@ -62,26 +62,27 @@ public class CustomerService {
             }
         } else {
             // Only one side matches, climb up to the root
-            primaryEntity = !emailMatches.isEmpty() ? findPrimaryCustomer(emailMatches.get(0)) : findPrimaryCustomer(phoneMatches.get(0));
+            primaryEntity = emailMatch.isPresent() ? findPrimaryCustomer(emailMatch.get()) : findPrimaryCustomer(phoneMatch.get());
         }
 
         // Check if exact match exists (`both fields match the same customer`)
-        boolean alreadyExists = Stream.concat(emailMatches.stream(), phoneMatches.stream()).anyMatch(e -> Objects.equals(e.getEmail(), email) && Objects.equals(e.getPhoneNumber(), phoneNumber));
+        Optional<CustomerEntity> existedCustomerEntity= repo.findFirstByPhoneNumberAndEmail(phoneNumber,email);
 
-        // --- CASE 3: Both fields match same customer, no creation, just return
-        if (alreadyExists) {
+        if (existedCustomerEntity.isPresent()) {
             List<CustomerEntity> allCluster = collectAllSecondaryCustomers(primaryEntity);
             return ResponseEntity.status(HttpStatus.OK).body(formatResponse(primaryEntity, allCluster));
         }
 
         // --- CASE 2: Only one field matches (partial match), add as secondary
-        if ((emailMatches.isEmpty() && !phoneMatches.isEmpty()) || (!emailMatches.isEmpty() && phoneMatches.isEmpty())) {
-            CustomerEntity secondaryEntity = new CustomerEntity();
-            secondaryEntity.setEmail(email);
-            secondaryEntity.setPhoneNumber(phoneNumber);
-            secondaryEntity.setLinkedPreference("secondary");
-            secondaryEntity.setLinkedId(primaryEntity.getId());
-            repo.save(secondaryEntity);
+        if (emailMatch.isEmpty()  ||  phoneMatch.isEmpty()) {
+            if((email != null && phoneNumber != null) || (email == null && phoneMatch.isEmpty()) || (phoneNumber==null && emailMatch.isEmpty())){
+                CustomerEntity secondaryEntity = new CustomerEntity();
+                secondaryEntity.setEmail(email);
+                secondaryEntity.setPhoneNumber(phoneNumber);
+                secondaryEntity.setLinkedPreference("secondary");
+                secondaryEntity.setLinkedId(primaryEntity.getId());
+                repo.save(secondaryEntity);
+            }
 
             List<CustomerEntity> secondaryCustomers = collectAllSecondaryCustomers(primaryEntity);
             return ResponseEntity.status(HttpStatus.CREATED).body(formatResponse(primaryEntity, secondaryCustomers));
