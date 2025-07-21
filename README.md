@@ -59,7 +59,7 @@ text
 ### Using cURL
 **Basic request**:
 ```bash
-curl -X POST "https://" \
+curl -X POST "https://identity-reconciliation-iz14.onrender.com/api/identify" \
    -H "Content-Type: application/json" \
    -d '{
     "phoneNumber": "8769972003", 
