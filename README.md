@@ -30,11 +30,6 @@ Update `src/main/resources/application.properties` as needed:
 spring.datasource.url=jdbc:mysql://localhost:3306/customer
 spring.datasource.username=root
 spring.datasource.password=
-spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
-spring.jpa.hibernate.ddl-auto=create
-spring.jpa.show-sql=true
-spring.jpa.properties.hibernate.format_sql=true
-spring.application.name=Identity-Reconciliation
 
 text
 
@@ -57,111 +52,415 @@ text
 
 ### Reconcile or Create a Customer Contact
 
-**Endpoint:**  
-`POST /identify`
+**Endpoint**: `POST /identity`
 
-**Sample Request Body:**
-{
-"email": "user@mail.com",
-"phoneNumber": "1234567890"
-}
+## Usage Examples
 
-text
+### Using cURL
+**Basic request**:
+```bash
+curl -X POST "https://" \
+   -H "Content-Type: application/json" \
+   -d '{
+    "phoneNumber": "8769972003", 
+    "email": "vishwas7890@gmail.com"
+  }'
 
-**Example curl:**
-curl -X POST http://localhost:8080/identify
--H "Content-Type: application/json"
--d '{"email":"user@mail.com", "phoneNumber":"1234567890"}'
-
-text
+```
 
 ---
 
 ## Example Reconciliation Scenarios
 
-### 1. Creating Initial Entries
+```bash
+curl -X POST http://localhost:8080/api/identify \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phoneNumber": "8769472003",
+    "email": "nainaisumit344@gmail.com"
+  }'
 
-curl -X POST http://localhost:8080/identify -H "Content-Type: application/json" -d '{"email":"a@mail.com", "phoneNumber":"111"}'
-curl -X POST http://localhost:8080/identify -H "Content-Type: application/json" -d '{"email":"b@mail.com", "phoneNumber":"222"}'
-curl -X POST http://localhost:8080/identify -H "Content-Type: application/json" -d '{"email":"c@mail.com", "phoneNumber":"333"}'
-curl -X POST http://localhost:8080/identify -H "Content-Type: application/json" -d '{"email":"d@mail.com", "phoneNumber":"444"}'
+Response:
+{
+  "contact": {
+    "primaryContatctId": 1,
+    "emails": [],
+    "phoneNumbers": [],
+    "secondaryContactIds": []
+  }
+}
 
-text
 
-### 2. Adding and Merging Related Entries
+curl -X POST http://localhost:8080/api/identify \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phoneNumber": "8769489076",
+    "email": "vishwas78@gmail.com"     
+  }'
 
-curl -X POST http://localhost:8080/identify -H "Content-Type: application/json" -d '{"email":"a@mail.com", "phoneNumber":"555"}'
-curl -X POST http://localhost:8080/identify -H "Content-Type: application/json" -d '{"email":"e@mail.com", "phoneNumber":"555"}'
-curl -X POST http://localhost:8080/identify -H "Content-Type: application/json" -d '{"email":"f@mail.com", "phoneNumber":"555"}'
+Response:
+{
+  "contact": {
+    "primaryContatctId": 2,
+    "emails": [],
+    "phoneNumbers": [],
+    "secondaryContactIds": []
+  }
+}
 
-text
-Now, entries 1, 5, 6, 7 form a cluster.
 
-### 3. Cross-linking into Existing Clusters
+ curl -X POST http://localhost:8080/api/identify \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phoneNumber": "8769489376",
+    "email": "gajjus78@gmail.com"
+  }'
 
-curl -X POST http://localhost:8080/identify -H "Content-Type: application/json" -d '{"email":"g@mail.com", "phoneNumber":"444"}'
-curl -X POST http://localhost:8080/identify -H "Content-Type: application/json" -d '{"email":"h@mail.com", "phoneNumber":"444"}'
+Response:
+{
+  "contact": {
+    "primaryContatctId": 3,
+    "emails": [],
+    "phoneNumbers": [],
+    "secondaryContactIds": []
+  }
+}
 
-text
 
-### 4. Primary/Secondary Merges & Cluster Joins
+ curl -X POST http://localhost:8080/api/identify \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phoneNumber": "9869489376",
+    "email": "skumar78@gmail.com"
+  }'
 
-Merge by linking nodes from different primary or secondary clusters:
-- When attributes are from primary 3 and secondary 9, merge into primary id 3.
-- When both attributes are from different primaries (1 and 2), merge all into the cluster with primary id 1.
-- When both attributes are from different secondaries (7 and 9), merge everything (1–9) into the cluster with primary id 1.
 
-**Example curl (primary and secondary merge):**
+Response:
+{
+  "contact": {
+    "primaryContatctId": 4,
+    "emails": [],
+    "phoneNumbers": [],
+    "secondaryContactIds": []
+  }
+}
 
-curl -X POST http://localhost:8080/identify -H "Content-Type: application/json" -d '{"email":"c@mail.com", "phoneNumber":"h@mail.com"}'
 
-text
+ curl -X POST http://localhost:8080/api/identify \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phoneNumber": "8769472003",
+    "email": "sumitn@gmail.com"
+  }'
 
----
+Response:
+{
+  "contact": {
+    "primaryContatctId": 1,
+    "emails": [
+      "nainaisumit344@gmail.com",
+      "sumitn@gmail.com"
+    ],
+    "phoneNumbers": [
+      "8769472003"
+    ],
+    "secondaryContactIds": [
+      5
+    ]
+  }
+}
 
-## Cluster Tree Example (after all merges)
 
-(primary)
-/ |
-5 6 7
+ curl -X POST http://localhost:8080/api/identify \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phoneNumber": "8769472003",
+    "email": "sumit344@gmail.com"
+  }'
 
-(common with 2)
-2 -- 3 -- 4 -- 8 -- 9
+Response:
+{
+  "contact": {
+    "primaryContatctId": 1,
+    "emails": [
+      "nainaisumit344@gmail.com",
+      "sumitn@gmail.com",
+      "sumit344@gmail.com"
+    ],
+    "phoneNumbers": [
+      "8769472003"
+    ],
+    "secondaryContactIds": [
+      5,
+      6
+    ]
+  }
+}
 
-text
 
-_All nodes linked into a single cluster after full reconciliation._
+curl -X POST http://localhost:8080/api/identify \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phoneNumber": "7768923134",
+    "email": "sumit344@gmail.com"
+  }'
 
----
+Response:
+{
+  "contact": {
+    "primaryContatctId": 1,
+    "emails": [
+      "nainaisumit344@gmail.com",
+      "sumitn@gmail.com",
+      "sumit344@gmail.com"
+    ],
+    "phoneNumbers": [
+      "8769472003",
+      "7768923134"
+    ],
+    "secondaryContactIds": [
+      5,
+      6,
+      7
+    ]
+  }
+}
 
-## How to Add Screenshots to the README
 
-1. Save your screenshots in the `screenshots/` folder (e.g., `screenshots/db-table.png`).
-2. Reference them in the README like this:
+curl -X POST http://localhost:8080/api/identify \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phoneNumber": "9869489376",
+    "email": "kumars@gmail.com"
+  }'
 
-Table after Step 1
-![DB Table After Inserts](./screenshots/db-table.png Example
+Response:
+{
+  "contact": {
+    "primaryContatctId": 4,
+    "emails": [
+      "skumar78@gmail.com",
+      "kumars@gmail.com"
+    ],
+    "phoneNumbers": [
+      "9869489376"
+    ],
+    "secondaryContactIds": [
+      8
+    ]
+  }
+}
 
-![Clustered Curl Response](./screenshots/c Async and Transactional Features
 
-All reconciliation logic is handled with @Async for concurrency.
+ curl -X POST http://localhost:8080/api/identify \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phoneNumber": "9078904323",
+    "email": "kumars@gmail.com"
+  }'
 
-Every DB write is wrapped with @Transactional to guarantee atomic reconciliation.
+Response:
+{
+  "contact": {
+    "primaryContatctId": 4,
+    "emails": [
+      "skumar78@gmail.com",
+      "kumars@gmail.com"
+    ],
+    "phoneNumbers": [
+      "9869489376",
+      "9078904323"
+    ],
+    "secondaryContactIds": [
+      8,
+      9
+    ]
+  }
+}
 
-Tech Stack
-Spring Boot
 
-Java 17+
+ curl -X POST http://localhost:8080/api/identify \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phoneNumber": "8769489376",
+    "email": "kumars@gmail.com"
+  }'
 
-MySQL (or compatible relational DB)
+Response:
+{
+  "contact": {
+    "primaryContatctId": 3,
+    "emails": [
+      "gajjus78@gmail.com",
+      "skumar78@gmail.com",
+      "kumars@gmail.com"
+    ],
+    "phoneNumbers": [
+      "8769489376",
+      "9869489376",
+      "9078904323"
+    ],
+    "secondaryContactIds": [
+      4,
+      8,
+      9
+    ]
+  }
+}
 
-Authors
-Your Name
 
-License
-MIT License
+curl -X POST http://localhost:8080/api/identify \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phoneNumber": "8769472003",
+    "email": "vishwas78@gmail.com"
+  }'
 
-If you see the app connecting to an unexpected database (like Railway), check for overriding environment variables and unset them for local testing!
+Response:
+{
+  "contact": {
+    "primaryContatctId": 1,
+    "emails": [
+      "nainaisumit344@gmail.com",
+      "vishwas78@gmail.com",
+      "sumitn@gmail.com",
+      "sumit344@gmail.com"
+    ],
+    "phoneNumbers": [
+      "8769472003",
+      "8769489076",
+      "7768923134"
+    ],
+    "secondaryContactIds": [
+      2,
+      5,
+      6,
+      7
+    ]
+  }
+}
 
-text
-Copy everything inside this code block and paste directly into your `README.md` file—it’s all in one place for a single-click copy!
+
+curl -X POST http://localhost:8080/api/identify \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phoneNumber": "8769972003",
+    "email": "vishwas7867@gmail.com"
+  }'
+
+Response:
+{
+  "contact": {
+    "primaryContatctId": 10,
+    "emails": [],
+    "phoneNumbers": [],
+    "secondaryContactIds": []
+  }
+}
+
+
+curl -X POST http://localhost:8080/api/identify \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phoneNumber": "8769472003",
+    "email": "vishwas78@gmail.com"  
+  }'
+
+Response:
+{
+  "contact": {
+    "primaryContatctId": 1,
+    "emails": [
+      "nainaisumit344@gmail.com",
+      "vishwas78@gmail.com",
+      "sumitn@gmail.com",
+      "sumit344@gmail.com"
+    ],
+    "phoneNumbers": [
+      "8769472003",
+      "8769489076",
+      "7768923134"
+    ],
+    "secondaryContactIds": [
+      2,
+      5,
+      6,
+      7
+    ]
+  }
+}
+
+
+ curl -X POST http://localhost:8080/api/identify \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phoneNumber": "8769972003", 
+    "email": "vishwas7890@gmail.com"
+  }'
+
+Response:
+{
+  "contact": {
+    "primaryContatctId": 10,
+    "emails": [
+      "vishwas7867@gmail.com",
+      "vishwas7890@gmail.com"
+    ],
+    "phoneNumbers": [
+      "8769972003"
+    ],
+    "secondaryContactIds": [
+      11
+    ]
+  }
+}
+
+
+curl -X POST http://localhost:8080/api/identify \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phoneNumber": "9078904323",
+    "email": "sumit344@gmail.com"
+  }'
+
+Response:
+{
+  "contact": {
+    "primaryContatctId": 1,
+    "emails": [
+      "nainaisumit344@gmail.com",
+      "vishwas78@gmail.com",
+      "gajjus78@gmail.com",
+      "skumar78@gmail.com",
+      "sumitn@gmail.com",
+      "sumit344@gmail.com",
+      "kumars@gmail.com"
+    ],
+    "phoneNumbers": [
+      "8769472003",
+      "8769489076",
+      "8769489376",
+      "9869489376",
+      "7768923134",
+      "9078904323"
+    ],
+    "secondaryContactIds": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ]
+  }
+}
+```
+
+
+
+### Tech Stack
+***Spring Boot***
+
+***MySQL (or compatible relational DB)***
