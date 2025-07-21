@@ -6,7 +6,10 @@ import com.example.Identity.Reconciliation.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.concurrent.CompletableFuture;
 
 @RestController
 @RequestMapping(value = "/api")
@@ -21,7 +24,8 @@ public class CustomerController {
     }
 
     @PostMapping(path = "/identify")
-    public ResponseEntity<?> func(@RequestBody CustomerRequestDTO customerRequestDTO){
-        return customerService.identifyCustomerContact(customerRequestDTO);
+    @Async
+    public CompletableFuture<ResponseEntity<?>> getCustomerContact(@RequestBody CustomerRequestDTO customerRequestDTO){
+        return CompletableFuture.completedFuture(customerService.identifyCustomerContact(customerRequestDTO));
     }
 }
