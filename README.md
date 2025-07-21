@@ -28,12 +28,14 @@ cd identity-reconciliation
 Update `src/main/resources/application.properties` as needed:
 
 spring.datasource.url=jdbc:mysql://localhost:3306/customer
+
 spring.datasource.username=root
+
 spring.datasource.password=
 
 text
 
-> **Note:** Spring Boot will use environment variables (`SPRING_DATASOURCE_*`) if present, overriding the above values.[2]
+> **Note:** Spring Boot will use environment variables (`SPRING_DATASOURCE_*, DB_*`) if present, overriding the above values.
 
 ---
 
@@ -52,7 +54,7 @@ text
 
 ### Reconcile or Create a Customer Contact
 
-**Endpoint**: `POST /identity`
+**Endpoint**: `POST /identify`
 
 ## Usage Examples
 
@@ -133,7 +135,6 @@ Response:
     "phoneNumber": "9869489376",
     "email": "skumar78@gmail.com"
   }'
-
 
 Response:
 {
