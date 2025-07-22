@@ -56,6 +56,12 @@ text
 
 **Endpoint**: `POST /identify`
 
+**URL**: `https://identity-reconciliation-iz14.onrender.com/api/identify`
+
+text
+
+> **Note:** The service will take some time on first HTTP request because it is deployed on Render and it may take some time to come online. Please wait..
+> 
 ## Usage Examples
 
 ### Using cURL
